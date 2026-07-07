@@ -43,7 +43,7 @@ const BreakdownDrawerContent = ({ breakdownType, projectSummaries, overallSummar
       renderRow = (project) => (
         <tr key={project._id} className="hover:bg-gray-50">
           <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{project.name}</td>
-          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{project.totalMaterialCost.toFixed(2)}</td>
+          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{(project.totalMaterialCost || 0).toFixed(2)}</td>
         </tr>
       );
       emptyMessage = 'No projects found with material cost data.';
@@ -55,7 +55,7 @@ const BreakdownDrawerContent = ({ breakdownType, projectSummaries, overallSummar
       renderRow = (project) => (
         <tr key={project._id} className="hover:bg-gray-50">
           <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{project.name}</td>
-          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{project.totalSalaryCost.toFixed(2)}</td>
+          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{(project.totalSalaryCost || 0).toFixed(2)}</td>
         </tr>
       );
       emptyMessage = 'No projects found with salary cost data.';
@@ -91,7 +91,7 @@ const BreakdownDrawerContent = ({ breakdownType, projectSummaries, overallSummar
       renderRow = (project) => (
         <tr key={project._id} className="hover:bg-gray-50">
           <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{project.name}</td>
-          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{project.overallCost.toFixed(2)}</td>
+          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{(project.overallCost || 0).toFixed(2)}</td>
         </tr>
       );
       emptyMessage = 'No projects found with overall cost data.';
@@ -146,7 +146,7 @@ const BreakdownDrawerContent = ({ breakdownType, projectSummaries, overallSummar
       renderRow = (site) => (
         <tr key={site._id} className="hover:bg-gray-50">
           <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{site.name}</td>
-          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{site.totalMaterialCost.toFixed(2)}</td>
+          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{(site.totalMaterialCost || 0).toFixed(2)}</td>
         </tr>
       );
       emptyMessage = 'No material cost data for assigned sites.';
@@ -158,7 +158,7 @@ const BreakdownDrawerContent = ({ breakdownType, projectSummaries, overallSummar
       renderRow = (site) => (
         <tr key={site._id} className="hover:bg-gray-50">
           <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{site.name}</td>
-          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{site.totalAdvanceGiven.toFixed(2)}</td>
+          <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{(site.totalAdvanceGiven || 0).toFixed(2)}</td>
         </tr>
       );
       emptyMessage = 'No advance data for assigned sites.';

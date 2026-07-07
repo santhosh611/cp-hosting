@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
 import { FaTrash } from 'react-icons/fa'; // Import FaTrash
+import { AuthContext } from '../../context/AuthContext';
 
 const WorkerForm = ({ worker, onSave, onClose }) => {
+  const { user } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     name: '',
     role: '',
@@ -16,6 +18,11 @@ const WorkerForm = ({ worker, onSave, onClose }) => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (user?.isDemo) {
+        setAllRoles([]);
+        setAllSites([]);
+        return;
+      }
       try {
         const [rolesRes, sitesRes] = await Promise.all([
           API.get('/roles'),
@@ -52,7 +59,7 @@ const WorkerForm = ({ worker, onSave, onClose }) => {
         assignedProjects: [],
       });
     }
-  }, [worker]);
+  }, [worker, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -105,6 +112,11 @@ const WorkerForm = ({ worker, onSave, onClose }) => {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (user?.isDemo) {
+      toast.info('Creating or modifying workers is disabled in Demo Mode.');
+      onClose();
+      return;
+    }
     try {
       const payload = {
         ...formData,

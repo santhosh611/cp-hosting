@@ -44,6 +44,15 @@ export const AuthProvider = ({ children }) => {
         const userInfo = JSON.parse(storedUserInfo);
         setAuthData(userInfo, storedToken);
 
+        // ── DEMO SESSION: skip profile fetch, stay in demo mode ───────────
+        if (userInfo.isDemo) {
+          console.log('AuthContext: Demo session restored from localStorage.');
+          setLoading(false);
+          console.log('AuthContext: Finished initial auth check. Loading is now false.');
+          return;
+        }
+        // ─────────────────────────────────────────────────────────────────
+
         try {
           console.log('AuthContext: Attempting profile fetch to validate token...');
           const res = await API.get('/auth/profile');
@@ -69,6 +78,22 @@ export const AuthProvider = ({ children }) => {
   }, [navigate, setAuthData, clearAuthData]);
 
   const login = async (username, password) => {
+    // ── DEMO ACCOUNT INTERCEPT (pure frontend, no API call) ──────────────────
+    if (username.trim().toLowerCase() === 'demo' && password === 'demo') {
+      const demoUser = {
+        _id: 'demo',
+        name: 'Demo User',
+        role: 'admin',
+        isDemo: true,
+      };
+      const demoToken = 'demo-token';
+      setAuthData(demoUser, demoToken);
+      toast.success('Welcome to Demo Mode! (Read-Only)');
+      console.log('AuthContext: Demo login successful.');
+      navigate('/admin/dashboard');
+      return { success: true };
+    }
+    // ─────────────────────────────────────────────────────────────────────────
     try {
       console.log('AuthContext: Attempting login for user:', username);
       const res = await API.post('/auth/login', { username, password });

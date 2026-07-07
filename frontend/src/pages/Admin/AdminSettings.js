@@ -1,5 +1,5 @@
 // contract/frontend/src/pages/Admin/AdminSettings.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import API from '../../api/axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -7,8 +7,17 @@ import { FaUserPlus, FaUsers, FaEdit, FaTrash } from 'react-icons/fa';
 import Modal from '../../components/common/Modal';
 import Table from '../../components/common/Table';
 import Spinner from '../../components/common/Spinner';
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
+
+const DEMO_USERS = [
+  { _id: 'demo-user-1', name: 'Priya Sharma', username: 'priya.sharma', role: 'supervisor', assignedSites: [{ name: 'Skyline Residency' }, { name: 'Green Valley Villas' }] },
+  { _id: 'demo-user-2', name: 'Rajan Verma', username: 'rajan.verma', role: 'supervisor', assignedSites: [{ name: 'CP Corporate Tower' }] },
+];
 
 const AdminSettings = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const [users, setUsers] = useState([]);
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +32,13 @@ const AdminSettings = () => {
   });
 
   const fetchUsersAndSites = async () => {
+    // DEMO MODE
+    if (user?.isDemo) {
+      setUsers(DEMO_USERS);
+      setSites(demoData.projects);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [usersRes, sitesRes] = await Promise.all([
@@ -41,7 +57,8 @@ const AdminSettings = () => {
 
   useEffect(() => {
     fetchUsersAndSites();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleAddUser = () => {
     setSelectedUser(null);
@@ -123,12 +140,14 @@ const AdminSettings = () => {
     <div className="p-6 bg-white rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold text-gray-800">Admin Settings</h2>
-        <button
-          onClick={handleAddUser}
-          className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700"
-        >
-          <FaUserPlus className="mr-2" /> Add New User
-        </button>
+        {!user?.isDemo && (
+          <button
+            onClick={handleAddUser}
+            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700"
+          >
+            <FaUserPlus className="mr-2" /> Add New User
+          </button>
+        )}
       </div>
 
       <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
@@ -144,22 +163,22 @@ const AdminSettings = () => {
             <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm capitalize">{user.role}</td>
             <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
               {user.assignedSites?.length > 0
-                ? user.assignedSites.map(site => sites.find(s => s._id === site)?.name || 'Unknown Site').join(', ')
+                ? user.assignedSites.map(site => site.name || sites.find(s => s._id === site)?.name || 'Unknown Site').join(', ')
                 : 'N/A'}
             </td>
             <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm flex space-x-2">
-              <button
-                onClick={() => handleEditUser(user)}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                <FaEdit />
-              </button>
-              <button
-                onClick={() => handleDeleteUser(user._id)}
-                className="text-red-600 hover:text-red-800"
-              >
-                <FaTrash />
-              </button>
+              {!user?.isDemo ? (
+                <>
+                  <button onClick={() => handleEditUser(user)} className="text-blue-600 hover:text-blue-800">
+                    <FaEdit />
+                  </button>
+                  <button onClick={() => handleDeleteUser(user._id)} className="text-red-600 hover:text-red-800">
+                    <FaTrash />
+                  </button>
+                </>
+              ) : (
+                <span className="text-gray-400 text-xs italic">View Only</span>
+              )}
             </td>
           </tr>
         )}
@@ -256,8 +275,6 @@ const AdminSettings = () => {
           </div>
         </form>
       </Modal>
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

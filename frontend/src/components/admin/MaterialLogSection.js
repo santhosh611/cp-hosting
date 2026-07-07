@@ -1,5 +1,5 @@
 // construction new/frontend/src/components/admin/MaterialLogSection.js
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import API from '../../api/axios';
 import { toast, ToastContainer } from 'react-toastify';
 import Table from '../common/Table';
@@ -7,8 +7,10 @@ import Modal from '../common/Modal';
 import MaterialLogForm from '../supervisor/MaterialLogForm';
 import { FaFilter, FaPlus, FaEdit, FaTrash, FaBoxOpen } from 'react-icons/fa';
 import Spinner from '../common/Spinner';
+import { AuthContext } from '../../context/AuthContext';
 
 const MaterialLogSection = ({ siteId }) => {
+  const { user } = useContext(AuthContext);
   const [materialLogs, setMaterialLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ material: '', startDate: '', endDate: '' });
@@ -18,6 +20,11 @@ const MaterialLogSection = ({ siteId }) => {
 
   // ---- STABLE FETCHER: accept query as an argument
   const fetchMaterialLogs = useCallback(async (query = {}) => {
+    if (user?.isDemo) {
+      setMaterialLogs([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await API.get('/materials', { params: query });
@@ -28,7 +35,7 @@ const MaterialLogSection = ({ siteId }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   // ---- INITIAL LOAD / WHEN siteId CHANGES ONLY
   useEffect(() => {
@@ -241,11 +248,8 @@ const MaterialLogSection = ({ siteId }) => {
           siteId={siteId}
         />
       </Modal>
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };
 
 export default MaterialLogSection;
-

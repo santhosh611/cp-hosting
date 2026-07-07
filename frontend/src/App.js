@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react'; // MODIFIED: Imported useState
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthContext } from './context/AuthContext';
+import { DemoDataProvider } from './context/DemoDataContext';
 import LoginPage from './pages/Auth/LoginPage';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import ManageProjects from './pages/Admin/ManageProjects';
@@ -45,6 +46,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Demo users are always treated as admin
+  if (user.isDemo) {
+    return children;
+  }
+
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/supervisor/dashboard'} replace />;
   }
@@ -66,25 +72,27 @@ function App() {
 
   return (
     // MODIFIED: Changed main layout div to handle relative positioning for the sidebar
-    <div className="relative md:flex h-screen bg-gray-100 font-inter">
-      {/* MODIFIED: Passed state and toggle function to Sidebar */}
-      {showLayout && user && <Sidebar role={user.role} isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />}
-      
-      <div className="flex flex-col flex-1">
-        {/* MODIFIED: Passed toggle function to Navbar */}
-       {showLayout && user && <Navbar user={user} toggleSidebar={toggleSidebar} />}
-       
-       <main className="flex-1 overflow-y-auto p-4">
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['admin']}><AdminRoutes /></ProtectedRoute>} />
-            <Route path="/supervisor/*" element={<ProtectedRoute allowedRoles={['supervisor']}><SupervisorRoutes /></ProtectedRoute>} />
-            <Route path="/" element={user ? (user.role === 'admin' ? <Navigate to="/admin/dashboard" /> : <Navigate to="/supervisor/dashboard" />) : <Navigate to="/login" />} />
-            <Route path="*" element={<Navigate to={user ? (user.role === 'admin' ? '/admin/dashboard' : '/supervisor/dashboard') : '/login'} />} />
-          </Routes>
-        </main>
+    <DemoDataProvider>
+      <div className="relative flex flex-col md:flex-row min-h-screen md:h-screen md:min-h-0 bg-gray-100 font-inter">
+        {/* MODIFIED: Passed state and toggle function to Sidebar */}
+        {showLayout && user && <Sidebar role={user.role} isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />}
+        
+        <div className="flex flex-col flex-1 min-w-0 min-h-screen md:min-h-0">
+          {/* MODIFIED: Passed toggle function to Navbar */}
+         {showLayout && user && <Navbar user={user} toggleSidebar={toggleSidebar} />}
+         
+          <main className={showLayout ? "flex-1 overflow-y-auto p-4" : "flex-1 overflow-hidden"}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['admin']}><AdminRoutes /></ProtectedRoute>} />
+              <Route path="/supervisor/*" element={<ProtectedRoute allowedRoles={['supervisor']}><SupervisorRoutes /></ProtectedRoute>} />
+              <Route path="/" element={user ? (user.role === 'admin' || user.isDemo ? <Navigate to="/admin/dashboard" /> : <Navigate to="/supervisor/dashboard" />) : <Navigate to="/login" />} />
+              <Route path="*" element={<Navigate to={user ? (user.role === 'admin' || user.isDemo ? '/admin/dashboard' : '/supervisor/dashboard') : '/login'} />} />
+            </Routes>
+          </main>
+        </div>
       </div>
-    </div>
+    </DemoDataProvider>
   );
 }
 

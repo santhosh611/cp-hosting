@@ -1,5 +1,5 @@
 // construction new/frontend/src/components/admin/AttendanceSection.js
-import React, { useEffect, useState, useCallback} from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import API from '../../api/axios';
 import { toast, ToastContainer } from 'react-toastify';
 import Table from '../common/Table';
@@ -9,8 +9,10 @@ import AttendanceForm from '../supervisor/AttendanceForm';
 import TemporaryWorkerForm from '../supervisor/TemporaryWorkerForm';
 import { FaPlus, FaClipboardCheck, FaEdit, FaTrash, FaFilter, FaUserPlus } from 'react-icons/fa';
 import Spinner from '../common/Spinner';
+import { AuthContext } from '../../context/AuthContext';
 
 const AttendanceSection = ({ siteId }) => {
+  const { user } = useContext(AuthContext);
   const [attendanceEntries, setAttendanceEntries] = useState([]);
   const [temporaryWorkers, setTemporaryWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,9 +22,15 @@ const AttendanceSection = ({ siteId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTemporaryModalOpen, setIsTemporaryModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
- const selectedDateForTemporary = new Date().toISOString().split('T')[0]; // Changed from useState to a regular constant
+  const selectedDateForTemporary = new Date().toISOString().split('T')[0]; // Changed from useState to a regular constant
 
 const fetchAttendanceAndTemporaryWorkers = useCallback(async () => {
+  if (user?.isDemo) {
+    setAttendanceEntries([]);
+    setTemporaryWorkers([]);
+    setLoading(false);
+    return;
+  }
   setLoading(true);
   try {
     const params = new URLSearchParams({ ...filters, siteId }).toString();
@@ -39,9 +47,13 @@ const fetchAttendanceAndTemporaryWorkers = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, [filters, siteId, selectedDateForTemporary]); 
+}, [filters, siteId, selectedDateForTemporary, user]); 
 
 const fetchSiteWorkers = useCallback(async () => {
+  if (user?.isDemo) {
+    setWorkers([]);
+    return;
+  }
   try {
     const res = await API.get(`/projects/${siteId}`);
     const assignedWorkersData = res.data.assignedWorkers.map(assignment => ({
@@ -54,7 +66,7 @@ const fetchSiteWorkers = useCallback(async () => {
     toast.error('Failed to load workers for this project.');
     console.error('Error fetching site workers:', error);
   }
-}, [siteId]); // Dependency for useCallback
+}, [siteId, user]); // Dependency for useCallback
 
 useEffect(() => {
   if (siteId) {
@@ -292,7 +304,6 @@ useEffect(() => {
           }}
         />
       </Modal>
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

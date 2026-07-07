@@ -98,25 +98,20 @@ const SupervisorDashboard = () => {
   };
 
 
-  if (loading) {
-    // Replaced "Loading projects..." text with the Spinner component
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)]"> 
-        <Spinner size="lg" type="logo" color="#2F3C7E" /> {/* Using your custom Spinner with 'logo' type */}
-        <span className="ml-3 mt-4 text-lg text-gray-700">Loading dashboard...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="p-2 sm:p-4 text-center text-red-600">Error: {error}</div>;
-  }
-
   return (
     <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6">Supervisor Dashboard</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] py-12"> 
+          <Spinner size="lg" type="logo" color="#2F3C7E" />
+          <span className="ml-3 mt-4 text-sm text-gray-500">Loading dashboard...</span>
+        </div>
+      ) : error ? (
+        <div className="p-2 sm:p-4 text-center text-red-600">Error: {error}</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
       <div
   className="bg-indigo-100 p-5 rounded-lg shadow-sm flex items-center justify-between cursor-pointer transform transition-all duration-300 hover:scale-105 hover:bg-indigo-200"
   onClick={() => handleCardClick('assigned_sites', 'Assigned Sites Breakdown')}
@@ -206,8 +201,10 @@ const SupervisorDashboard = () => {
               overallSummary={summary} // Pass overall summary for lists like workers/sites
             />
           </Drawer>
-        </div>
-      );
-    };
+        </>
+      )}
+    </div>
+    );
+  };
 
 export default SupervisorDashboard;

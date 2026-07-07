@@ -1,5 +1,5 @@
 // construction new/frontend/src/pages/Admin/ManageRolesSalaries.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import API from '../../api/axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -7,8 +7,12 @@ import Modal from '../../components/common/Modal';
 import Table from '../../components/common/Table';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import Spinner from '../../components/common/Spinner';
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
 
 const ManageRolesSalaries = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,6 +20,12 @@ const ManageRolesSalaries = () => {
   const [formData, setFormData] = useState({ roleName: '', defaultSalary: '' });
 
   const fetchRoles = async () => {
+    // DEMO MODE
+    if (user?.isDemo) {
+      setRoles(demoData.roles);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await API.get('/roles');
@@ -30,7 +40,8 @@ const ManageRolesSalaries = () => {
 
   useEffect(() => {
     fetchRoles();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleAddRole = () => {
     setSelectedRole(null);
@@ -45,6 +56,10 @@ const ManageRolesSalaries = () => {
   };
 
   const handleDeleteRole = async (id) => {
+    if (user?.isDemo) {
+      toast.info('Deleting roles is disabled in Demo Mode.');
+      return;
+    }
     if (window.confirm('Are you sure you want to delete this role?')) {
       try {
         await API.delete(`/roles/${id}`);
@@ -64,6 +79,11 @@ const ManageRolesSalaries = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (user?.isDemo) {
+      toast.info('Creating or modifying roles is disabled in Demo Mode.');
+      setIsModalOpen(false);
+      return;
+    }
     try {
       if (selectedRole) {
         await API.put(`/roles/${selectedRole._id}`, formData);
@@ -82,15 +102,6 @@ const ManageRolesSalaries = () => {
 
   const tableHeaders = ['Role Name', 'Default Daily Salary', 'Actions'];
 
-  if (loading) {
-    // Replaced "Loading projects..." text with the Spinner component
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)]"> 
-        <Spinner size="lg" type="logo" color="#2F3C7E" /> {/* Using your custom Spinner with 'logo' type */}
-        <span className="ml-3 mt-4 text-lg text-gray-700">Loading roles...</span>
-      </div>
-    );
-  }
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-6">
@@ -103,9 +114,15 @@ const ManageRolesSalaries = () => {
         </button>
       </div>
 
-      <Table
-        headers={tableHeaders}
-        data={roles}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] py-12"> 
+          <Spinner size="lg" type="logo" color="#2F3C7E" />
+          <span className="ml-3 mt-4 text-sm text-gray-500">Loading roles...</span>
+        </div>
+      ) : (
+        <Table
+          headers={tableHeaders}
+          data={roles}
         renderRow={(role) => (
           <tr key={role._id} className="hover:bg-gray-50">
             <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
@@ -113,7 +130,7 @@ const ManageRolesSalaries = () => {
             </td>
             {/* MODIFIED: Changed currency symbol from $ to ₹ */}
             <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-              ₹{role.defaultSalary.toFixed(2)}
+              ₹{(role.defaultSalary || 0).toFixed(2)}
             </td>
             <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm flex space-x-2">
               <button
@@ -132,6 +149,7 @@ const ManageRolesSalaries = () => {
           </tr>
         )}
       />
+      )}
 
       <Modal
         isOpen={isModalOpen}
@@ -181,8 +199,6 @@ const ManageRolesSalaries = () => {
           </div>
         </form>
       </Modal>
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

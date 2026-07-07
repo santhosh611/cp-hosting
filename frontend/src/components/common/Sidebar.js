@@ -12,8 +12,9 @@ const Sidebar = ({ role }) => {
   const { logout } = useContext(AuthContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
   const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // --- Style block for the logo animation ---
+  // --- Style block for the logo animation and modal animations ---
   const animationStyle = `
     /* MODIFIED: New animation for the flip and rotate effect */
     @keyframes flip-and-rotate {
@@ -26,6 +27,34 @@ const Sidebar = ({ role }) => {
     }
     .animate-flip-and-rotate {
       animation: flip-and-rotate 1.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes zoomIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes bounce-subtle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.2s ease-out forwards;
+    }
+    .animate-zoomIn {
+      animation: zoomIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .animate-bounce-subtle {
+      animation: bounce-subtle 2s infinite ease-in-out;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
   `;
 
@@ -81,6 +110,11 @@ const Sidebar = ({ role }) => {
 
   const handleLogoutClick = () => {
     handleLinkClick();
+    setShowLogoutConfirm(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false);
     logout();
   };
 
@@ -117,14 +151,14 @@ const Sidebar = ({ role }) => {
           onMouseLeave={() => setIsLogoHovered(false)}
         >
           {isSidebarOpen ? (
-            <div className="flex items-center cursor-pointer">
+            <div className="flex items-center cursor-pointer min-w-0">
               <img
                 src="/CP logo.png"
                 alt="CP Architect Logo"
-                className={`w-12 h-12 rounded-full mr-3 object-cover ${isLogoHovered ? 'animate-flip-and-rotate' : ''}`}
+                className={`w-12 h-12 rounded-full mr-3 object-cover flex-shrink-0 ${isLogoHovered ? 'animate-flip-and-rotate' : ''}`}
                 title="CP Architect"
               />
-              <h1 className="text-2xl font-extrabold text-white">
+              <h1 className="text-lg font-bold text-white tracking-wider truncate whitespace-nowrap flex-1">
                 {isLogoHovered ? "Welcome Back" : "CP ARCHITECT"}
               </h1>
             </div>
@@ -140,7 +174,7 @@ const Sidebar = ({ role }) => {
           )}
         </div>
 
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto no-scrollbar">
           {currentNavItems.map((item) => (
             <NavLink
               key={item.name}
@@ -172,6 +206,71 @@ const Sidebar = ({ role }) => {
           </button>
         </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      {showLogoutConfirm && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center animate-fadeIn"
+          style={{
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+          }}
+        >
+          <div 
+            className="bg-white text-gray-800 rounded-2xl p-8 max-w-sm w-full mx-4 transform animate-zoomIn"
+            style={{
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              border: '1px solid #f1f5f9',
+            }}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div 
+                className="w-16 h-16 rounded-full flex items-center justify-center mb-4 animate-bounce-subtle"
+                style={{
+                  backgroundColor: '#fff1f2',
+                }}
+              >
+                <FaSignOutAlt className="text-2xl" style={{ color: '#e11d48' }} />
+              </div>
+
+              <h3 className="text-xl font-bold mb-2" style={{ color: '#0f172a' }}>
+                Are you sure?
+              </h3>
+
+              <p className="text-sm mb-6 leading-relaxed" style={{ color: '#64748b' }}>
+                You are about to log out. Any unsaved progress in active forms may be lost.
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 cursor-pointer hover:bg-gray-100 border text-gray-700"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    borderColor: '#e2e8f0',
+                    color: '#334155',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmLogout}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-sm text-white transition-all duration-200 cursor-pointer hover:opacity-90"
+                  style={{
+                    background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                    color: '#ffffff',
+                    boxShadow: '0 4px 12px rgba(225, 29, 72, 0.25)',
+                    border: 'none',
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

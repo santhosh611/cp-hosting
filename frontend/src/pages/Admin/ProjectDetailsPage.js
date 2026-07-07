@@ -1,11 +1,9 @@
 // construction/frontend/src/pages/Admin/ProjectDetailsPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
 import { FaClipboardCheck, FaBoxOpen, FaClipboardList, FaMoneyBillAlt, FaFilePdf, FaArrowLeft, FaDolly } from 'react-icons/fa'; // Added FaDolly
-
-// Import section components
 import AttendanceSection from '../../components/admin/AttendanceSection';
 import MaterialLogSection from '../../components/admin/MaterialLogSection';
 import ActivityLogSection from '../../components/admin/ActivityLogSection';
@@ -13,8 +11,12 @@ import AdvanceManagementSection from '../../components/admin/AdvanceManagementSe
 import ReportGeneratorSection from '../../components/admin/ReportGeneratorSection';
 import ProjectRentTab from '../../components/admin/ProjectRentTab'; 
 import Spinner from '../../components/common/Spinner'; // Importing custom Spinner component
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
 
 const ProjectDetailsPage = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const { projectId } = useParams();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +24,13 @@ const ProjectDetailsPage = () => {
   const [activeTab, setActiveTab] = useState('attendance');
 
   useEffect(() => {
+    // DEMO MODE
+    if (user?.isDemo) {
+      const demoProj = demoData.projects.find(p => p._id === projectId) || demoData.projects[0];
+      setProject(demoProj);
+      setLoading(false);
+      return;
+    }
     const fetchProjectDetails = async () => {
       try {
         const res = await API.get(`/projects/${projectId}`);
@@ -37,7 +46,8 @@ const ProjectDetailsPage = () => {
     if (projectId) {
       fetchProjectDetails();
     }
-  }, [projectId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, user]);
 
   if (loading) {
     // Replaced "Loading projects..." text with the Spinner component

@@ -1,7 +1,9 @@
 // construction/frontend/src/pages/Admin/AdminDashboard.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
 import {
   FaHardHat,
   FaProjectDiagram,
@@ -60,6 +62,8 @@ const AnimatedNumber = ({ end, duration = 1.5, isCurrency = false }) => {
 
 
 const AdminDashboard = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const [summary, setSummary] = useState(null);
   const [projectSummaries, setProjectSummaries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +76,14 @@ const AdminDashboard = () => {
 
 
   useEffect(() => {
+    // ── DEMO MODE: use mock data ────────────────────────────────────────────
+    if (user?.isDemo) {
+      setSummary(demoData.dashboardSummary);
+      setProjectSummaries(demoData.projectSummaries);
+      setLoading(false);
+      return;
+    }
+    // ───────────────────────────────────────────────────────────────────────
     const fetchDashboardData = async () => {
       try {
         const summaryRes = await API.get('/admin/dashboard-summary');
@@ -121,7 +133,7 @@ const AdminDashboard = () => {
       }
     };
     fetchDashboardData();
-  }, []);
+  }, [user, demoData]);
   
   const handleCardClick = (type, title) => {
     setBreakdownType(type);
@@ -135,20 +147,6 @@ const AdminDashboard = () => {
     setBreakdownTitle('');
   };
 
-
-  if (loading) {
-    // Replaced "Loading dashboard..." text with the Spinner component, using type="logo"
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)]"> 
-        <Spinner size="lg" type="logo" color="#2F3C7E" /> {/* Using your custom Spinner with 'logo' type */}
-        <span className="ml-3 mt-4 text-lg text-gray-700">Loading dashboard...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="p-4 text-center text-red-600">Error: {error}</div>;
-  }
 
   return (
     <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md">
@@ -177,7 +175,14 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      {showOverallSummary ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] py-12"> 
+          <Spinner size="lg" type="logo" color="#2F3C7E" />
+          <span className="ml-3 mt-4 text-sm text-gray-500">Loading dashboard...</span>
+        </div>
+      ) : error ? (
+        <div className="p-4 text-center text-red-600">Error: {error}</div>
+      ) : showOverallSummary ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div

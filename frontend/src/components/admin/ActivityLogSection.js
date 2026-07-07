@@ -1,5 +1,5 @@
 // construction/frontend/src/components/admin/ActivityLogSection.js
-import React, { useEffect, useState, useCallback} from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
 import Table from '../common/Table';
@@ -7,9 +7,10 @@ import Modal from '../common/Modal';
 import ActivityLogForm from '../supervisor/ActivityLogForm'; // Reusing supervisor's form (it's generic)
 import { FaFilter, FaPlus, FaEdit, FaTrash, FaClipboardList } from 'react-icons/fa';
 import Spinner from '../common/Spinner';
+import { AuthContext } from '../../context/AuthContext';
 
 const ActivityLogSection = ({ siteId }) => {
- 
+  const { user } = useContext(AuthContext);
   const [activityLogs, setActivityLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ startDate: '', endDate: '' });
@@ -18,6 +19,11 @@ const ActivityLogSection = ({ siteId }) => {
   const [selectedActivityLog, setSelectedActivityLog] = useState(null);
 
 const fetchActivityLogs = useCallback(async () => {
+  if (user?.isDemo) {
+    setActivityLogs([]);
+    setLoading(false);
+    return;
+  }
   setLoading(true);
   try {
     const params = new URLSearchParams({ ...filters, siteId }).toString();
@@ -29,7 +35,7 @@ const fetchActivityLogs = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, [filters, siteId]); // Dependencies: 'filters' and 'siteId' are used inside
+}, [filters, siteId, user]); // Dependencies: 'filters', 'siteId', and 'user' are used inside
 
 useEffect(() => {
   if (siteId) {

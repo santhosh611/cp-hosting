@@ -1,12 +1,16 @@
 // contract/frontend/src/pages/Admin/ReportGenerator.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import API from '../../api/axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaFilePdf, FaFileExcel, FaFilter } from 'react-icons/fa'; // MODIFIED: Import FaFileExcel
 import * as XLSX from 'xlsx'; // MODIFIED: Import xlsx
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
 
 const ReportGenerator = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const [sites, setSites] = useState([]);
   const [filters, setFilters] = useState({
     siteId: '',
@@ -19,6 +23,11 @@ const ReportGenerator = () => {
   const [showExcelOptions, setShowExcelOptions] = useState(false); // MODIFIED: State for excel options
 
   useEffect(() => {
+    // DEMO MODE
+    if (user?.isDemo) {
+      setSites(demoData.projects);
+      return;
+    }
     const fetchSites = async () => {
       try {
         const res = await API.get('/projects');
@@ -29,7 +38,8 @@ const ReportGenerator = () => {
       }
     };
     fetchSites();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -139,24 +149,30 @@ const ReportGenerator = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-        <button
-          onClick={() => generateReport('pdf')}
-          disabled={loading || !filters.startDate || !filters.endDate}
-          className="flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
-        >
-          <FaFilePdf className="mr-2" />
-          {loading ? 'Generating...' : 'Generate PDF'}
-        </button>
-        
-        {/* MODIFIED: Excel Button */}
-        <div className="relative">
+        {user?.isDemo ? (
+          <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-300 rounded-md">
+            <span className="text-amber-700 text-sm font-medium">🎭 Report download is disabled in Demo Mode</span>
+          </div>
+        ) : (
+          <>
             <button
-              onClick={handleExcelOptionClick}
+              onClick={() => generateReport('pdf')}
               disabled={loading || !filters.startDate || !filters.endDate}
-              className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+              className="flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
             >
-              <FaFileExcel className="mr-2" /> Generate Excel
+              <FaFilePdf className="mr-2" />
+              {loading ? 'Generating...' : 'Generate PDF'}
             </button>
+            
+            {/* MODIFIED: Excel Button */}
+            <div className="relative">
+                <button
+                  onClick={handleExcelOptionClick}
+                  disabled={loading || !filters.startDate || !filters.endDate}
+                  className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                >
+                  <FaFileExcel className="mr-2" /> Generate Excel
+                </button>
             {showExcelOptions && (
               <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                 <button
@@ -189,11 +205,12 @@ const ReportGenerator = () => {
                   className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
                 >
                   Material Logs
-                  
                 </button>
               </div>
             )}
           </div>
+          </>
+        )}
         </div>
       </div>
 
@@ -212,7 +229,6 @@ const ReportGenerator = () => {
         </div>
       )}
 
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

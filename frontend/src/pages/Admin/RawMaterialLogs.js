@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import API from '../../api/axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -7,8 +7,12 @@ import Modal from '../../components/common/Modal';
 import MaterialLogForm from '../../components/supervisor/MaterialLogForm';
 import { FaFilter, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import Spinner from '../../components/common/Spinner';
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
 
 const RawMaterialLogs = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const [materialLogs, setMaterialLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sites, setSites] = useState([]);
@@ -42,9 +46,17 @@ const fetchSites = useCallback(async () => {
 }, []);
 
 useEffect(() => {
+  // DEMO MODE
+  if (user?.isDemo) {
+    setMaterialLogs(demoData.materialLogs);
+    setSites(demoData.projects);
+    setLoading(false);
+    return;
+  }
   fetchSites();
   fetchMaterialLogs(); // initial, no filters
-}, [fetchSites, fetchMaterialLogs]);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [user]);
   // We are removing this useEffect because we want to trigger the fetch
   // only when the user explicitly clicks the "Apply Filters" button.
   // The first useEffect already handles the initial data load.
@@ -101,14 +113,7 @@ const resetFilters = () => {
 
   const tableHeaders = ['Site', 'Material', 'Brand', 'Quantity', 'Unit', 'Price/Unit', 'Flight Charge', 'Total Cost', 'Date', 'Recorded By', 'Actions'];
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
-        <Spinner size="lg" type="logo" color="#2F3C7E" />
-        <span className="ml-3 mt-4 text-lg text-gray-700">Loading raw material...</span>
-      </div>
-    );
-  }
+
 
   return (
     <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md">
@@ -192,76 +197,85 @@ const resetFilters = () => {
         </form>
       </div>
 
-      <div className="flex justify-end items-center mb-4">
-        <button
-          onClick={handleAddLog}
-          className={`flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700 ${!filters.siteId ? 'opacity-50 cursor-not-allowed' : ''}`}
-          disabled={!filters.siteId}
-        >
-          <FaPlus className="mr-2" /> Log New Material
-        </button>
-      </div>
+      {!user?.isDemo && (
+        <div className="flex justify-end items-center mb-4">
+          <button
+            onClick={handleAddLog}
+            className={`flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700 ${!filters.siteId ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!filters.siteId}
+          >
+            <FaPlus className="mr-2" /> Log New Material
+          </button>
+        </div>
+      )}
 
-      <Table
-        headers={tableHeaders}
-        data={materialLogs}
-        emptyMessage="No material logs found for the selected criteria."
-        renderRow={(log) => {
-          const totalCostIncludingFlight = (
-            (typeof log.total === 'number' ? log.total : 0) +
-            (typeof log.flightCharge === 'number' ? log.flightCharge : 0)
-          ).toFixed(2);
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] py-12">
+          <Spinner size="lg" type="logo" color="#2F3C7E" />
+          <span className="ml-3 mt-4 text-sm text-gray-500">Loading raw material...</span>
+        </div>
+      ) : (
+        <Table
+          headers={tableHeaders}
+          data={materialLogs}
+          emptyMessage="No material logs found for the selected criteria."
+          renderRow={(log) => {
+            const totalCostIncludingFlight = (
+              (typeof log.total === 'number' ? log.total : 0) +
+              (typeof log.flightCharge === 'number' ? log.flightCharge : 0)
+            ).toFixed(2);
 
-          return (
-            <tr key={log._id} className="hover:bg-gray-50">
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                {log.siteId?.name || 'N/A'}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                {log.material}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                {log.brand || 'N/A'}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                {log.quantity}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                {log.unit}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                ₹{typeof log.pricePerUnit === 'number' ? log.pricePerUnit.toFixed(2) : 'N/A'}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                ₹{typeof log.flightCharge === 'number' ? log.flightCharge.toFixed(2) : 'N/A'}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                ₹{totalCostIncludingFlight}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                {log.date ? new Date(log.date).toLocaleDateString('en-GB') : 'N/A'}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                {log.recordedBy?.name || 'N/A'}
-              </td>
-              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm flex space-x-2">
-                <button
-                  onClick={() => handleEditLog(log)}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  <FaEdit />
-                </button>
-                <button
-                  onClick={() => handleDeleteLog(log._id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <FaTrash />
-                </button>
-              </td>
-            </tr>
-          );
-        }}
-      />
+            return (
+              <tr key={log._id} className="hover:bg-gray-50">
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {log.siteId?.name || log.site?.name || 'N/A'}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {log.material}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {log.brand || 'N/A'}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {log.quantity}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {log.unit}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  ₹{typeof log.pricePerUnit === 'number' ? log.pricePerUnit.toFixed(2) : (typeof log.costPerUnit === 'number' ? log.costPerUnit.toFixed(2) : 'N/A')}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  ₹{typeof log.flightCharge === 'number' ? log.flightCharge.toFixed(2) : '0.00'}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  ₹{typeof log.total === 'number' ? (log.total + (log.flightCharge || 0)).toFixed(2) : (typeof log.totalCost === 'number' ? log.totalCost.toFixed(2) : 'N/A')}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {log.date ? new Date(log.date).toLocaleDateString('en-GB') : 'N/A'}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {log.recordedBy?.name || log.enteredBy?.name || 'N/A'}
+                </td>
+                <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm flex space-x-2">
+                  {!user?.isDemo ? (
+                    <>
+                      <button onClick={() => handleEditLog(log)} className="text-blue-600 hover:text-blue-800">
+                        <FaEdit />
+                      </button>
+                      <button onClick={() => handleDeleteLog(log._id)} className="text-red-600 hover:text-red-800">
+                        <FaTrash />
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-gray-400 text-xs italic">View Only</span>
+                  )}
+                </td>
+              </tr>
+            );
+          }}
+        />
+      )}
 
       <Modal
         isOpen={isModalOpen}
@@ -276,8 +290,6 @@ const resetFilters = () => {
           siteId={filters.siteId}
         />
       </Modal>
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

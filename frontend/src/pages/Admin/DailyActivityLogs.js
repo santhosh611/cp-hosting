@@ -1,14 +1,17 @@
-import React, { useEffect, useState, useCallback } from 'react'; // Added useCallback
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import API from '../../api/axios';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
 import Table from '../../components/common/Table';
 import Modal from '../../components/common/Modal';
 import ActivityLogForm from '../../components/supervisor/ActivityLogForm';
 import { FaFilter, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import Spinner from '../../components/common/Spinner';
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
 
 const DailyActivityLogs = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const [activityLogs, setActivityLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sites, setSites] = useState([]);
@@ -19,6 +22,11 @@ const DailyActivityLogs = () => {
 
   // Memoize fetchActivityLogs with useCallback
   const fetchActivityLogs = useCallback(async () => {
+    if (user?.isDemo) {
+      setActivityLogs([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const params = new URLSearchParams(filters).toString();
@@ -30,10 +38,14 @@ const DailyActivityLogs = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]); // 'filters' is a dependency because it's used inside
+  }, [filters, user]);
 
   // Memoize fetchSites with useCallback
   const fetchSites = useCallback(async () => {
+    if (user?.isDemo) {
+      setSites([]);
+      return;
+    }
     try {
       const res = await API.get('/projects');
       setSites(res.data);
@@ -41,19 +53,20 @@ const DailyActivityLogs = () => {
       toast.error('Failed to load sites for filter.');
       console.error('Error fetching sites:', error);
     }
-  }, []); // No external dependencies, so an empty array is appropriate
+  }, [user]);
 
   // Initial data fetch useEffect
   useEffect(() => {
     fetchSites();
-    fetchActivityLogs();
-  }, [fetchSites, fetchActivityLogs]); // Added fetchSites and fetchActivityLogs as dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // This useEffect will now properly re-run when filters change because fetchActivityLogs
   // is a stable reference.
   useEffect(() => {
+    if (user?.isDemo) return;
     fetchActivityLogs();
-  }, [filters, fetchActivityLogs]); // Added fetchActivityLogs as a dependency
+  }, [filters, fetchActivityLogs, user]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -64,11 +77,6 @@ const DailyActivityLogs = () => {
 
   const resetFilters = () => {
     setFilters({ siteId: '', startDate: '', endDate: '' });
-    // Note: fetchActivityLogs() is called by the useEffect above when filters change,
-    // so explicitly calling it here might cause a double fetch depending on render timing.
-    // However, keeping it for now if there's a specific reason for immediate refresh.
-    // If not, consider removing the explicit call here and just letting the useEffect handle it.
-    fetchActivityLogs();
   };
 
   const handleAddLog = () => {
@@ -86,7 +94,7 @@ const DailyActivityLogs = () => {
       try {
         await API.delete(`/activities/${id}`);
         toast.success('Activity log deleted successfully!');
-        fetchActivityLogs(); // Call the memoized version
+        fetchActivityLogs();
       } catch (error) {
         toast.error(`Failed to delete activity log: ${error.response?.data?.message || error.message}`);
         console.error('Error deleting activity log:', error);
@@ -95,20 +103,13 @@ const DailyActivityLogs = () => {
   };
 
   const handleSaveLog = () => {
-    fetchActivityLogs(); // Call the memoized version
+    fetchActivityLogs();
     setIsModalOpen(false);
   };
 
   const tableHeaders = ['Site', 'Date', 'Message', 'Supervisor', 'Actions'];
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
-        <Spinner size="lg" type="logo" color="#2F3C7E" />
-        <span className="ml-3 mt-4 text-lg text-gray-700">Loading daily activity...</span>
-      </div>
-    );
-  }
+
 
   return (
     <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md">
@@ -176,50 +177,59 @@ const DailyActivityLogs = () => {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-end items-center mb-4 sm:mb-6 space-y-2 sm:space-y-0">
-        <button
-          onClick={handleAddLog}
-          className="flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700"
-        >
-          <FaPlus className="mr-2" /> Log New Activity
-        </button>
-      </div>
+      {!user?.isDemo && (
+        <div className="flex flex-col sm:flex-row justify-end items-center mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+          <button
+            onClick={handleAddLog}
+            className="flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700"
+          >
+            <FaPlus className="mr-2" /> Log New Activity
+          </button>
+        </div>
+      )}
 
-      <Table
-        headers={tableHeaders}
-        data={activityLogs}
-        emptyMessage="No activity logs found for the selected criteria."
-        renderRow={(log) => (
-          <tr key={log._id} className="hover:bg-gray-50">
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-              {log.siteId?.name || 'N/A'}
-            </td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-              {log.date ? new Date(log.date).toLocaleDateString('en-GB') : 'N/A'}
-            </td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-              {log.message}
-            </td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-              {log.supervisorId?.name || 'N/A'}
-            </td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm flex space-x-2">
-              <button
-                onClick={() => handleEditLog(log)}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                <FaEdit />
-              </button>
-              <button
-                onClick={() => handleDeleteLog(log._id)}
-                className="text-red-600 hover:text-red-800"
-              >
-                <FaTrash />
-              </button>
-            </td>
-          </tr>
-        )}
-      />
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] py-12">
+          <Spinner size="lg" type="logo" color="#2F3C7E" />
+          <span className="ml-3 mt-4 text-sm text-gray-500">Loading daily activity...</span>
+        </div>
+      ) : (
+        <Table
+          headers={tableHeaders}
+          data={activityLogs}
+          emptyMessage="No activity logs found for the selected criteria."
+          renderRow={(log) => (
+            <tr key={log._id} className="hover:bg-gray-50">
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                {log.siteId?.name || log.site?.name || 'N/A'}
+              </td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                {log.date ? new Date(log.date).toLocaleDateString('en-GB') : 'N/A'}
+              </td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                {log.message || log.activityType || 'N/A'}{log.description ? ` — ${log.description}` : ''}
+              </td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                {log.supervisorId?.name || log.enteredBy?.name || 'N/A'}
+              </td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm flex space-x-2">
+                {!user?.isDemo ? (
+                  <>
+                    <button onClick={() => handleEditLog(log)} className="text-blue-600 hover:text-blue-800">
+                      <FaEdit />
+                    </button>
+                    <button onClick={() => handleDeleteLog(log._id)} className="text-red-600 hover:text-red-800">
+                      <FaTrash />
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-gray-400 text-xs italic">View Only</span>
+                )}
+              </td>
+            </tr>
+          )}
+        />
+      )}
 
       <Modal
         isOpen={isModalOpen}
@@ -234,8 +244,6 @@ const DailyActivityLogs = () => {
           siteId={filters.siteId}
         />
       </Modal>
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 // frontend/src/pages/Admin/AttendanceOverview.js
-import React, { useEffect, useState, useMemo, useCallback } from 'react'; // Added useCallback
+import React, { useEffect, useState, useMemo, useCallback, useContext } from 'react'; // Added useCallback
 import API from '../../api/axios';
 import { toast, ToastContainer } from 'react-toastify'; // ToastContainer is now used
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,12 +9,17 @@ import AttendanceForm from '../../components/supervisor/AttendanceForm';
 import TemporaryWorkerForm from '../../components/supervisor/TemporaryWorkerForm';
 import { FaFilter, FaPlus, FaEdit, FaTrash, FaUserPlus } from 'react-icons/fa';
 import Spinner from '../../components/common/Spinner';
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
 
 const AttendanceOverview = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const [attendanceEntries, setAttendanceEntries] = useState([]);
   const [temporaryWorkers, setTemporaryWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sites, setSites] = useState([]);
+  const [sitesLoaded, setSitesLoaded] = useState(false);
   const [workersForSiteFilter, setWorkersForSiteFilter] = useState([]);
   const [filters, setFilters] = useState({ siteId: '', workerId: '', startDate: '', endDate: '' });
 
@@ -76,9 +81,11 @@ const AttendanceOverview = () => {
     try {
       const res = await API.get('/projects');
       setSites(res.data);
+      setSitesLoaded(true);
     } catch (error) {
       toast.error('Failed to load sites for filter.');
       console.error('Error fetching sites:', error);
+      setSitesLoaded(true);
     }
   }, []); // No external dependencies
 
@@ -104,14 +111,26 @@ const AttendanceOverview = () => {
 
   // Initial data fetch useEffect (runs once on mount)
   useEffect(() => {
+    // DEMO MODE: load mock data
+    if (user?.isDemo) {
+      setAttendanceEntries(demoData.attendance);
+      setTemporaryWorkers([]);
+      setSites(demoData.projects);
+      setSitesLoaded(true);
+      setLoading(false);
+      return;
+    }
     fetchSites();
-  }, [fetchSites]); // Dependency: fetchSites (now stable)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Dependency: fetchSites (now stable)
 
   // This useEffect runs whenever filters change, or when the sites list populates
   useEffect(() => {
+    if (user?.isDemo) return;
+    if (!sitesLoaded) return; // Wait for sites to load
     fetchAllEntries();
     fetchWorkersForSelectedSite(filters.siteId);
-  }, [sites, filters.siteId, filters.workerId, filters.startDate, filters.endDate, fetchAllEntries, fetchWorkersForSelectedSite]); // Dependencies for this useEffect
+  }, [sitesLoaded, filters.siteId, filters.workerId, filters.startDate, filters.endDate, fetchAllEntries, fetchWorkersForSelectedSite, user]); // Dependencies for this useEffect
 
 
   const handleFilterChange = (e) => {
@@ -185,14 +204,7 @@ const AttendanceOverview = () => {
 
   const tableHeaders = ['Site', 'Worker', 'Role', 'Date', 'Shift Type', 'Multiplier', 'Recorded By', 'Actions'];
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
-        <Spinner size="lg" type="logo" color="#2F3C7E" />
-        <span className="ml-3 mt-4 text-lg text-gray-700">Loading attendance...</span>
-      </div>
-    );
-  }
+
 
   return (
     <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md">
@@ -232,62 +244,65 @@ const AttendanceOverview = () => {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-end items-center mb-4 sm:mb-6 space-y-2 sm:space-y-0 sm:space-x-2">
-        <button onClick={handleAddTemporaryWorker} className={`flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-green-600 text-white rounded-md shadow hover:bg-green-700 ${!filters.siteId ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!filters.siteId}>
-          <FaUserPlus className="mr-2" /> Add Temporary Worker
-        </button>
-        <button onClick={handleAddEntry} className={`flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700 ${!filters.siteId ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!filters.siteId}>
-          <FaPlus className="mr-2" /> Mark New Attendance
-        </button>
-      </div>
+      {!user?.isDemo && (
+        <div className="flex flex-col sm:flex-row justify-end items-center mb-4 sm:mb-6 space-y-2 sm:space-y-0 sm:space-x-2">
+          <button onClick={handleAddTemporaryWorker} className={`flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-green-600 text-white rounded-md shadow hover:bg-green-700 ${!filters.siteId ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!filters.siteId}>
+            <FaUserPlus className="mr-2" /> Add Temporary Worker
+          </button>
+          <button onClick={handleAddEntry} className={`flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700 ${!filters.siteId ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!filters.siteId}>
+            <FaPlus className="mr-2" /> Mark New Attendance
+          </button>
+        </div>
+      )}
 
-      <Table
-        headers={tableHeaders}
-        data={combinedEntries}
-        renderRow={(entry) => (
-          <tr key={entry._id} className="hover:bg-gray-50">
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.siteId?.name || 'N/A'}</td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-              {entry.isTemporary ? `${entry.workerId.name} (Temporary)` : (entry.workerId?.name || 'N/A')}
-            </td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-              {entry.workerId?.role || 'N/A'}
-            </td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.date ? new Date(entry.date).toLocaleDateString('en-GB') : 'N/A'}</td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.shiftType}</td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.multiplier?.toFixed ? entry.multiplier.toFixed(1) : entry.multiplier}</td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.recordedBy?.name || 'N/A'}</td>
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => {
-                    if (entry.isTemporary) {
-                      // For temporary workers, open the TemporaryWorkerForm for editing
-                      // Note: Your TemporaryWorkerForm doesn't currently accept an 'entryToEdit' prop for pre-filling.
-                      // You might need to extend it to handle editing if needed.
-                      // For now, this just opens the modal.
-                      setIsTemporaryModalOpen(true);
-                      // If you want to edit a temporary worker, you'd also set a selectedTemporaryWorker state here
-                      // setSelectedTemporaryWorker(entry);
-                    } else {
-                      handleEditEntry(entry);
-                    }
-                  }}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  <FaEdit />
-                </button>
-                <button
-                  onClick={() => handleDeleteEntry(entry.isTemporary ? entry._id.replace('temporary-', '') : entry._id, entry.isTemporary)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <FaTrash />
-                </button>
-              </div>
-            </td>
-          </tr>
-        )}
-      />
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] py-12">
+          <Spinner size="lg" type="logo" color="#2F3C7E" />
+          <span className="ml-3 mt-4 text-sm text-gray-500">Loading attendance...</span>
+        </div>
+      ) : (
+        <Table
+          headers={tableHeaders}
+          data={combinedEntries}
+          renderRow={(entry) => (
+            <tr key={entry._id} className="hover:bg-gray-50">
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.siteId?.name || 'N/A'}</td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                {entry.isTemporary ? `${entry.workerId.name} (Temporary)` : (entry.workerId?.name || 'N/A')}
+              </td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                {entry.workerId?.role || 'N/A'}
+              </td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.date ? new Date(entry.date).toLocaleDateString('en-GB') : 'N/A'}</td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.shiftType}</td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.multiplier?.toFixed ? entry.multiplier.toFixed(1) : entry.multiplier}</td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{entry.recordedBy?.name || 'N/A'}</td>
+              <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      if (entry.isTemporary) {
+                        setIsTemporaryModalOpen(true);
+                      } else {
+                        handleEditEntry(entry);
+                      }
+                    }}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    <FaEdit />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteEntry(entry.isTemporary ? entry._id.replace('temporary-', '') : entry._id, entry.isTemporary)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          )}
+        />
+      )}
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedEntry ? 'Edit Attendance Entry' : 'Mark New Attendance'} size="md">
         <AttendanceForm onSave={handleSaveEntry} onClose={() => setIsModalOpen(false)} siteId={filters.siteId} attendanceEntry={selectedEntry} />
@@ -312,9 +327,6 @@ const AttendanceOverview = () => {
           }}
         />
       </Modal>
-
-      {/* ToastContainer added to the component's render */}
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

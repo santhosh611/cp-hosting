@@ -79,11 +79,11 @@ const ProjectSummaryCards = () => {
 
             <div className="space-y-2 text-gray-700 text-xs sm:text-sm">
               <p className="flex items-center"><FaHardHat className="mr-2 text-green-600" /> Workers: <span className="font-medium ml-1">{project.totalWorkers}</span></p>
-              <p className="flex items-center"><FaMoneyBillWave className="mr-2 text-yellow-600" /> Material Cost: <span className="font-medium ml-1">₹{project.totalMaterialCost.toFixed(2)}</span></p>
-              <p className="flex items-center"><FaMoneyBillWave className="mr-2 text-purple-600" /> Salary Cost: <span className="font-medium ml-1">₹{project.totalSalaryCost.toFixed(2)}</span></p>
+              <p className="flex items-center"><FaMoneyBillWave className="mr-2 text-yellow-600" /> Material Cost: <span className="font-medium ml-1">₹{(project.totalMaterialCost || 0).toFixed(2)}</span></p>
+              <p className="flex items-center"><FaMoneyBillWave className="mr-2 text-purple-600" /> Salary Cost: <span className="font-medium ml-1">₹{(project.totalSalaryCost || 0).toFixed(2)}</span></p>
               <p className="flex items-center"><FaMoneyBillWave className="mr-2 text-orange-600" /> Total Advance: <span className="font-medium ml-1">₹{(project.totalAdvance || 0).toFixed(2)}</span></p>
               <p className="flex items-center"><FaMoneyBillWave className="mr-2 text-teal-600" /> Total Rent: <span className="font-medium ml-1">₹{(project.totalRent || 0).toFixed(2)}</span></p>
-              <p className="flex items-center"><FaChartLine className="mr-2 text-red-600" /> Overall Cost: <span className="font-bold ml-1">₹{project.overallCost.toFixed(2)}</span></p>
+              <p className="flex items-center"><FaChartLine className="mr-2 text-red-600" /> Overall Cost: <span className="font-bold ml-1">₹{(project.overallCost || 0).toFixed(2)}</span></p>
             </div>
           </div>
           <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200 flex justify-end">

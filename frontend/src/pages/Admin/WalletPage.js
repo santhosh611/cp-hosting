@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { FaWallet, FaPlus, FaExclamationTriangle, FaChartPie, FaMoneyBillWave, FaTools, FaHardHat, FaBoxOpen, FaEdit, FaTrash } from "react-icons/fa";
 import API from "../../api/axios";
 import Spinner from "../../components/common/Spinner";
 import Drawer from "../../components/common/Drawer";
 import { toast } from 'react-toastify';
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
 
 const WalletPage = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [projects, setProjects] = useState([]);
@@ -27,8 +31,30 @@ const WalletPage = () => {
   });
 
   useEffect(() => {
+    // DEMO MODE: load mock wallet data
+    if (user?.isDemo) {
+      const demoWallet = demoData.wallet;
+      setWalletSummary({
+        sites: demoData.projects.map((p, i) => ({
+          siteId: p,
+          totalFunds: [500000, 300000, 270000][i] || 200000,
+          totalExpenses: [395000, 110000, 72000][i] || 100000,
+          remaining: [105000, 190000, 198000][i] || 100000,
+        })),
+        totals: {
+          totalFunds: demoWallet.totalCredit,
+          totalExpenses: demoWallet.totalDebit,
+          totalRemaining: demoWallet.totalBalance,
+        }
+      });
+      setProjects(demoData.projects);
+      setSitePayments(demoWallet.transactions);
+      setLoading(false);
+      return;
+    }
     fetchInitialData();
-  }, []); // Removed fetchInitialData from dependencies to avoid infinite loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Removed fetchInitialData from dependencies to avoid infinite loop
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -310,15 +336,6 @@ const WalletPage = () => {
     return 'bg-green-500';
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
-        <Spinner size="lg" type="logo" color="#2F3C7E" />
-        <span className="ml-3 mt-4 text-lg text-gray-700">Loading wallet data...</span>
-      </div>
-    );
-  }
-
   return (
     <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 flex items-center">
@@ -335,16 +352,25 @@ const WalletPage = () => {
         </div>
       )}
 
-      {/* Add Funds Button */}
-      <div className="flex justify-between items-center mb-6">
-        <button
-          onClick={() => handleAddPayment()}
-          className="flex items-center justify-center px-4 py-2 rounded-md transition-colors duration-200 text-sm bg-green-600 text-white hover:bg-green-700 shadow"
-        >
-          <FaPlus className="mr-2" />
-          Add Client Funds
-        </button>
-      </div>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] py-12"> 
+          <Spinner size="lg" type="logo" color="#2F3C7E" />
+          <span className="ml-3 mt-4 text-sm text-gray-500">Loading wallet data...</span>
+        </div>
+      ) : (
+        <>
+          {/* Add Funds Button */}
+          {!user?.isDemo && (
+            <div className="flex justify-between items-center mb-6">
+              <button
+                onClick={() => handleAddPayment()}
+                className="flex items-center justify-center px-4 py-2 rounded-md transition-colors duration-200 text-sm bg-green-600 text-white hover:bg-green-700 shadow"
+              >
+                <FaPlus className="mr-2" />
+                Add Client Funds
+              </button>
+            </div>
+          )}
 
       {/* Overall Summary */}
       {walletSummary && (
@@ -518,13 +544,15 @@ const WalletPage = () => {
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold text-gray-800">Payment History</h4>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handleAddPayment(selectedSite?.siteId?._id)}
-                    className="flex items-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
-                  >
-                    <FaPlus className="mr-1" />
-                    Add Payment
-                  </button>
+                  {!user?.isDemo && (
+                    <button
+                      onClick={() => handleAddPayment(selectedSite?.siteId?._id)}
+                      className="flex items-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                    >
+                      <FaPlus className="mr-1" />
+                      Add Payment
+                    </button>
+                  )}
                 </div>
               </div>
               
@@ -556,22 +584,26 @@ const WalletPage = () => {
                           <span>By: {payment?.allocatedBy?.name || 'Admin'}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <button
-                          onClick={() => handleEditPayment(payment)}
-                          className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
-                        >
-                          <FaEdit className="mr-1" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeletePayment(payment._id, payment?.paymentNumber || 1)}
-                          className="flex items-center px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
-                        >
-                          <FaTrash className="mr-1" />
-                          Delete
-                        </button>
-                      </div>
+                      {!user?.isDemo ? (
+                        <div className="flex items-center gap-2 ml-4">
+                          <button
+                            onClick={() => handleEditPayment(payment)}
+                            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                          >
+                            <FaEdit className="mr-1" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeletePayment(payment._id, payment?.paymentNumber || 1)}
+                            className="flex items-center px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+                          >
+                            <FaTrash className="mr-1" />
+                            Delete
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic ml-4">View Only</span>
+                      )}
                     </div>
                   </div>
                 )) || []}
@@ -871,7 +903,8 @@ const WalletPage = () => {
           </form>
         </div>
       </Drawer>
-
+        </>
+      )}
     </div>
   );
 };

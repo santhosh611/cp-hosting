@@ -1,12 +1,13 @@
 // construction/frontend/src/components/admin/ReportGeneratorSection.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
 import { FaFilePdf, FaFilter } from 'react-icons/fa';
+import { AuthContext } from '../../context/AuthContext';
 
 
 const ReportGeneratorSection = ({ siteId }) => {
-  
+  const { user } = useContext(AuthContext);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -30,6 +31,10 @@ const ReportGeneratorSection = ({ siteId }) => {
   };
 
   const generateReport = async (format) => {
+    if (user?.isDemo) {
+      toast.info('Report downloads are disabled in Demo Mode.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

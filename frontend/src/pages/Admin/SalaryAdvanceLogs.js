@@ -1,12 +1,17 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useContext } from 'react';
 import API from '../../api/axios';
 import { toast, ToastContainer } from 'react-toastify';
 import Table from '../../components/common/Table';
 import Modal from '../../components/common/Modal';
 import AdvanceForm from '../../components/supervisor/AdvanceForm';
 import { FaFilter, FaPlus, FaEdit, FaTrash, FaMoneyBillAlt, FaCheckCircle, FaTimesCircle, FaCheckDouble, FaBan } from 'react-icons/fa';
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
+import Spinner from '../../components/common/Spinner';
 
 const SalaryAdvanceLogs = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const today = new Date().toISOString().split('T')[0];
 
   const [salaryLogs, setSalaryLogs] = useState([]);
@@ -95,6 +100,16 @@ const SalaryAdvanceLogs = () => {
   }, [workers]);
 
   useEffect(() => {
+    // DEMO MODE: load mock salary/advance data
+    if (user?.isDemo) {
+      setSalaryLogs(demoData.salaryLogs);
+      setAdvanceLogs(demoData.advanceLogs);
+      setSites(demoData.projects);
+      setWorkers(demoData.workers);
+      setWorkersForFilter(demoData.workers);
+      setLoading(false);
+      return;
+    }
     fetchInitialData();
     getLogs({ startDate: today, endDate: today });
 
@@ -105,7 +120,7 @@ const SalaryAdvanceLogs = () => {
       window.removeEventListener('attendanceChanged', handleAttendanceUpdate);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchWorkersForSite(filters.siteId);
@@ -252,13 +267,7 @@ const SalaryAdvanceLogs = () => {
     <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6">Salary & Advance Logs</h2>
 
-    {loading && (
-      <div className="flex items-center justify-center h-48">
-        {/* You can replace this with your Spinner component if you have one, like: */}
-        {/* <Spinner size="lg" type="logo" color="#2F3C7E" /> */}
-        <p className="text-xl text-gray-600">Loading data...</p>
-      </div>
-    )}
+
       <div className="mb-4 sm:mb-6 p-2 sm:p-4 bg-gray-50 rounded-lg shadow-sm">
         <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center">
           <FaFilter className="mr-2 text-indigo-600" /> Filters
@@ -290,79 +299,113 @@ const SalaryAdvanceLogs = () => {
         <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center">
           <FaMoneyBillAlt className="mr-3 text-green-600" /> {isDailyView ? "Today's Salary Report" : "Weekly Salary Report"}
         </h3>
-        <div className="mb-4 sm:mb-6 flex justify-between items-center">
-          <div className="flex space-x-3">
-            <button onClick={() => handleMarkSelected(true)} className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md shadow hover:bg-green-700" disabled={selectedSalaryLogIds.size === 0}>
-              <FaCheckDouble className="mr-2" /> Mark as Paid
-            </button>
-            <button onClick={() => handleMarkSelected(false)} className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md shadow hover:bg-red-700" disabled={selectedSalaryLogIds.size === 0}>
-              <FaBan className="mr-2" /> Mark as Unpaid
-            </button>
+        {!user?.isDemo && (
+          <div className="mb-4 sm:mb-6 flex justify-between items-center">
+            <div className="flex space-x-3">
+              <button onClick={() => handleMarkSelected(true)} className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md shadow hover:bg-green-700" disabled={selectedSalaryLogIds.size === 0}>
+                <FaCheckDouble className="mr-2" /> Mark as Paid
+              </button>
+              <button onClick={() => handleMarkSelected(false)} className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md shadow hover:bg-red-700" disabled={selectedSalaryLogIds.size === 0}>
+                <FaBan className="mr-2" /> Mark as Unpaid
+              </button>
+            </div>
           </div>
-        </div>
-        <Table
-          headers={salaryTableHeaders}
-          data={aggregatedSalaryLogs}
-          emptyMessage="No salary logs found for the selected criteria."
-          renderRow={(log) => {
-            // MODIFIED: Correctly handle date display by using UTC dates
-            const startDate = new Date(log.weekStart).toLocaleDateString('en-GB', { timeZone: 'UTC' });
-            const endDate = new Date(log.weekEnd).toLocaleDateString('en-GB', { timeZone: 'UTC' });
+        )}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center min-h-[200px] py-6">
+            <Spinner size="lg" type="logo" color="#2F3C7E" />
+            <span className="ml-3 mt-4 text-sm text-gray-500">Loading salaries...</span>
+          </div>
+        ) : (
+          <Table
+            headers={salaryTableHeaders}
+            data={aggregatedSalaryLogs}
+            emptyMessage="No salary logs found for the selected criteria."
+            renderRow={(log) => {
+              // MODIFIED: Correctly handle date display by using UTC dates
+              const rawStart = log.startDate || log.weekStart;
+              const rawEnd = log.endDate || log.weekEnd;
+              const startDate = rawStart ? new Date(rawStart).toLocaleDateString('en-GB', { timeZone: 'UTC' }) : 'N/A';
+              const endDate = rawEnd ? new Date(rawEnd).toLocaleDateString('en-GB', { timeZone: 'UTC' }) : 'N/A';
 
-            return (
-              <tr key={log._id}>
-                <td className="px-5 py-3 border-b text-sm"><input type="checkbox" checked={selectedSalaryLogIds.has(log._id)} onChange={() => handleCheckboxChange(log._id)} /></td>
-                <td className="px-5 py-3 border-b text-sm">{log.workerId?.name || log.temporaryWorkerName}</td>
-                <td className="px-5 py-3 border-b text-sm">{log.siteId?.name}</td>
-                <td className="px-5 py-3 border-b text-sm">{startDate}</td>
-                <td className="px-5 py-3 border-b text-sm">{endDate}</td>
-                <td className="px-5 py-3 border-b text-sm">{log.totalAttendanceDays.toFixed(1)}</td>
-                <td className="px-5 py-3 border-b text-sm">{`₹${log.grossSalary.toFixed(2)}`}</td>
-                <td className="px-5 py-3 border-b text-sm">{`₹${log.totalAdvanceDeducted.toFixed(2)}`}</td>
-                <td className="px-5 py-3 border-b text-sm">{`₹${log.netSalary.toFixed(2)}`}</td>
-                <td className="px-5 py-3 border-b text-sm">{log.paid ? <FaCheckCircle className="text-green-500" /> : <FaTimesCircle className="text-red-500" />}</td>
-                <td className="px-5 py-3 border-b text-sm"><button onClick={() => handleTogglePaidStatus(log._id, log.paid)} className={`px-2 py-1 text-xs rounded-md ${log.paid ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`}>{log.paid ? 'Mark Unpaid' : 'Mark Paid'}</button></td>
-              </tr>
-            );
-          }}
-        />
+              return (
+                <tr key={log._id}>
+                  <td className="px-5 py-3 border-b text-sm">
+                    {!user?.isDemo && (
+                      <input type="checkbox" checked={selectedSalaryLogIds.has(log._id)} onChange={() => handleCheckboxChange(log._id)} />
+                    )}
+                  </td>
+                  <td className="px-5 py-3 border-b text-sm">{log.workerId?.name || log.worker?.name || log.temporaryWorkerName}</td>
+                  <td className="px-5 py-3 border-b text-sm">{log.siteId?.name || log.site?.name}</td>
+                  <td className="px-5 py-3 border-b text-sm">{startDate}</td>
+                  <td className="px-5 py-3 border-b text-sm">{endDate}</td>
+                  <td className="px-5 py-3 border-b text-sm">{typeof log.totalDaysWorked === 'number' ? log.totalDaysWorked.toFixed(1) : (typeof log.totalAttendanceDays === 'number' ? log.totalAttendanceDays.toFixed(1) : '0')}</td>
+                  <td className="px-5 py-3 border-b text-sm">{`₹${(log.grossSalary || log.totalSalary || 0).toFixed(2)}`}</td>
+                  <td className="px-5 py-3 border-b text-sm">{`₹${(log.totalAdvanceDeducted || 0).toFixed(2)}`}</td>
+                  <td className="px-5 py-3 border-b text-sm">{`₹${(log.netSalary || log.totalSalary || 0).toFixed(2)}`}</td>
+                  <td className="px-5 py-3 border-b text-sm">{log.paid || log.isPaid ? <FaCheckCircle className="text-green-500" /> : <FaTimesCircle className="text-red-500" />}</td>
+                  <td className="px-5 py-3 border-b text-sm">
+                    {!user?.isDemo ? (
+                      <button onClick={() => handleTogglePaidStatus(log._id, log.paid)} className={`px-2 py-1 text-xs rounded-md ${log.paid ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`}>{log.paid ? 'Mark Unpaid' : 'Mark Paid'}</button>
+                    ) : (
+                      <span className="text-gray-400 text-xs italic">View Only</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            }}
+          />
+        )}
       </div>
       
       <div>
         <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center">
           <FaMoneyBillAlt className="mr-3 text-purple-600" /> Advance Payment Logs
         </h3>
-        <div className="mb-4 sm:mb-6 flex justify-end">
-          <button onClick={handleAddAdvance} className="flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700">
-            <FaPlus className="mr-2" /> Add New Advance
-          </button>
-        </div>
-        <Table
-          headers={advanceTableHeaders}
-          data={advanceLogs}
-          emptyMessage="No advance payment logs found."
-          renderRow={log => (
-            <tr key={log._id}>
-              <td className="px-5 py-3 border-b text-sm">{log.workerId?.name || log.temporaryWorkerName}</td>
-              <td className="px-5 py-3 border-b text-sm">{log.siteId?.name}</td>
-              <td className="px-5 py-3 border-b text-sm">{`₹${log.amount.toFixed(2)}`}</td>
-              <td className="px-5 py-3 border-b text-sm">{new Date(log.date).toLocaleDateString('en-GB')}</td>
-              <td className="px-5 py-3 border-b text-sm">{log.reason}</td>
-              <td className="px-5 py-3 border-b text-sm">{log.recordedBy?.name}</td>
-              <td className="px-5 py-3 border-b text-sm flex space-x-2">
-                <button onClick={() => handleEditAdvance(log)} className="text-blue-600 hover:text-blue-800"><FaEdit /></button>
-                <button onClick={() => handleDeleteAdvance(log._id)} className="text-red-600 hover:text-red-800"><FaTrash /></button>
-              </td>
-            </tr>
-          )}
-        />
+        {!user?.isDemo && (
+          <div className="mb-4 sm:mb-6 flex justify-end">
+            <button onClick={handleAddAdvance} className="flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-indigo-600 text-white rounded-md shadow hover:bg-indigo-700">
+              <FaPlus className="mr-2" /> Add New Advance
+            </button>
+          </div>
+        )}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center min-h-[200px] py-6">
+            <Spinner size="lg" type="logo" color="#2F3C7E" />
+            <span className="ml-3 mt-4 text-sm text-gray-500">Loading advances...</span>
+          </div>
+        ) : (
+          <Table
+            headers={advanceTableHeaders}
+            data={advanceLogs}
+            emptyMessage="No advance payment logs found."
+            renderRow={log => (
+              <tr key={log._id}>
+                <td className="px-5 py-3 border-b text-sm">{log.workerId?.name || log.worker?.name || log.temporaryWorkerName}</td>
+                <td className="px-5 py-3 border-b text-sm">{log.siteId?.name || log.site?.name}</td>
+                <td className="px-5 py-3 border-b text-sm">{`₹${log.amount.toFixed(2)}`}</td>
+                <td className="px-5 py-3 border-b text-sm">{new Date(log.date).toLocaleDateString('en-GB')}</td>
+                <td className="px-5 py-3 border-b text-sm">{log.reason}</td>
+                <td className="px-5 py-3 border-b text-sm">{log.recordedBy?.name || 'Admin'}</td>
+                <td className="px-5 py-3 border-b text-sm flex space-x-2">
+                  {!user?.isDemo ? (
+                    <>
+                      <button onClick={() => handleEditAdvance(log)} className="text-blue-600 hover:text-blue-800"><FaEdit /></button>
+                      <button onClick={() => handleDeleteAdvance(log._id)} className="text-red-600 hover:text-red-800"><FaTrash /></button>
+                    </>
+                  ) : (
+                    <span className="text-gray-400 text-xs italic">View Only</span>
+                  )}
+                </td>
+              </tr>
+            )}
+          />
+        )}
       </div>
 
       <Modal isOpen={isAdvanceModalOpen} onClose={() => setIsAdvanceModalOpen(false)} title={selectedAdvance ? 'Edit Advance Entry' : 'Add New Advance Entry'} size="md">
         <AdvanceForm advanceEntry={selectedAdvance} onSave={handleSaveAdvance} onClose={() => setIsAdvanceModalOpen(false)} siteId={filters.siteId} />
       </Modal>
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

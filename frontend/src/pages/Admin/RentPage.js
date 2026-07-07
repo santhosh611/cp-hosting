@@ -1,12 +1,16 @@
 // construction new/frontend/src/pages/Admin/RentPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import API from '../../api/axios';
 import { FaFilter, FaTrash, FaEdit, FaPlus } from 'react-icons/fa';
 import Modal from '../../components/common/Modal'; // Import Modal
 import RentForm from '../../components/admin/RentForm'; // Import the new RentForm component
+import { AuthContext } from '../../context/AuthContext';
+import { useDemoData } from '../../context/DemoDataContext';
 
 const RentPage = () => {
+  const { user } = useContext(AuthContext);
+  const demoData = useDemoData();
   const [rents, setRents] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,12 +21,20 @@ const RentPage = () => {
   const [filters, setFilters] = useState(initialFilters);
 
   useEffect(() => {
+    // DEMO MODE
+    if (user?.isDemo) {
+      setRents(demoData.rentEntries);
+      setProjects(demoData.projects);
+      return;
+    }
     API.get('/projects').then(res => setProjects(res.data)).catch(() => toast.error('Failed to load projects.'));
-    fetchRents();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   useEffect(() => {
+    if (user?.isDemo) return;
     fetchRents(filters);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const fetchRents = async (currentFilters = {}) => {
@@ -102,11 +114,13 @@ const RentPage = () => {
       </div>
 
       {/* Add New Rent Button */}
-      <div className="flex justify-end mb-4">
-        <button onClick={handleAddRent} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
-            <FaPlus className="mr-2" /> Add New Rent
-        </button>
-      </div>
+      {!user?.isDemo && (
+        <div className="flex justify-end mb-4">
+          <button onClick={handleAddRent} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+              <FaPlus className="mr-2" /> Add New Rent
+          </button>
+        </div>
+      )}
 
       {/* Rents Table */}
       <div className="overflow-x-auto bg-white rounded-lg shadow-md">
@@ -125,13 +139,19 @@ const RentPage = () => {
               <tr><td colSpan="5" className="text-center py-4">Loading...</td></tr>
             ) : rents.map(rent => (
               <tr key={rent._id}>
-                <td className="px-6 py-4 whitespace-nowrap">{rent.site?.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{new Date(rent.rentDate).toLocaleDateString()}</td>
-                <td className="px-6 py-4 whitespace-nowrap">₹{rent.amount.toFixed(2)}</td>
-                <td className="px-6 py-4 whitespace-nowrap max-w-xs truncate" title={rent.toolsDescription}>{rent.toolsDescription}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{rent.site?.name || rent.vendorName || 'N/A'}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{rent.startDate ? new Date(rent.startDate).toLocaleDateString() : (rent.rentDate ? new Date(rent.rentDate).toLocaleDateString() : 'N/A')}</td>
+                <td className="px-6 py-4 whitespace-nowrap">₹{rent.rentAmount ? rent.rentAmount.toFixed(2) : (rent.amount ? rent.amount.toFixed(2) : '0.00')}</td>
+                <td className="px-6 py-4 whitespace-nowrap max-w-xs truncate" title={rent.itemName || rent.toolsDescription}>{rent.itemName || rent.toolsDescription}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button onClick={() => handleEdit(rent)} className="text-indigo-600 hover:text-indigo-900 mr-4" title="Edit"><FaEdit /></button>
-                  <button onClick={() => handleDelete(rent._id)} className="text-red-600 hover:text-red-900" title="Delete"><FaTrash /></button>
+                  {!user?.isDemo ? (
+                    <>
+                      <button onClick={() => handleEdit(rent)} className="text-indigo-600 hover:text-indigo-900 mr-4" title="Edit"><FaEdit /></button>
+                      <button onClick={() => handleDelete(rent._id)} className="text-red-600 hover:text-red-900" title="Delete"><FaTrash /></button>
+                    </>
+                  ) : (
+                    <span className="text-gray-400 text-xs italic">View Only</span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -153,8 +173,6 @@ const RentPage = () => {
           siteId={filters.siteId}
         />
       </Modal>
-
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

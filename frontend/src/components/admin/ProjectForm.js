@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
 import { FaTrash } from 'react-icons/fa'; // MODIFIED: Added FaTrash to the import list
+import { AuthContext } from '../../context/AuthContext';
 
 const ProjectForm = ({ project, onSave, onClose }) => {
+  const { user } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -45,6 +47,11 @@ const ProjectForm = ({ project, onSave, onClose }) => {
     }
 
     const fetchData = async () => {
+      if (user?.isDemo) {
+        setAllSupervisors([]);
+        setAllWorkers([]);
+        return;
+      }
       try {
         const [supervisorsRes, workersRes] = await Promise.all([
           API.get('/auth/users?role=supervisor'),
@@ -59,7 +66,7 @@ const ProjectForm = ({ project, onSave, onClose }) => {
     };
 
     fetchData();
-  }, [project]);
+  }, [project, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -115,6 +122,11 @@ const ProjectForm = ({ project, onSave, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (user?.isDemo) {
+      toast.info('Creating or modifying projects is disabled in Demo Mode.');
+      onClose();
+      return;
+    }
 
     try {
       const payload = {

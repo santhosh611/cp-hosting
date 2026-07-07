@@ -50,7 +50,6 @@ const RentPageSupervisor = () => {
       }
     };
     fetchAssignedSites();
-    fetchRents(); // Initial fetch without filters
   }, [fetchRents]); // Added fetchRents to dependencies
 
   useEffect(() => {

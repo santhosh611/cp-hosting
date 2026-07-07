@@ -1,13 +1,15 @@
 // construction new/frontend/src/components/admin/ProjectRentTab.js
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useCallback, useContext } from 'react'; // Added useCallback
 import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import { FaFilter, FaTrash, FaEdit, FaPlus } from 'react-icons/fa'; // FaRedo removed
 import Modal from '../common/Modal';
 import RentForm from './RentForm';
 import Table from '../common/Table'; // Assuming you have this Table component
+import { AuthContext } from '../../context/AuthContext';
 
 const ProjectRentTab = ({ siteId }) => {
+  const { user } = useContext(AuthContext);
   const [rents, setRents] = useState([]);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(false); // 'loading' state is now used
@@ -19,6 +21,11 @@ const ProjectRentTab = ({ siteId }) => {
 
   // Memoize fetchRents using useCallback to make it a stable dependency
   const fetchRents = useCallback(async (currentFilters) => {
+    if (user?.isDemo) {
+      setRents([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const params = { ...currentFilters, siteId };
     if (!params.startDate) delete params.startDate;
@@ -33,11 +40,15 @@ const ProjectRentTab = ({ siteId }) => {
     } finally {
       setLoading(false);
     }
-  }, [siteId]); // Dependency: siteId is used in the params for the API call
+  }, [siteId, user]); // Dependency: siteId and user are used in the params for the API call
 
   // Memoize fetchProjectData using useCallback
   const fetchProjectData = useCallback(async () => {
     if (!siteId) return;
+    if (user?.isDemo) {
+      setProject(null);
+      return;
+    }
     try {
       const projectRes = await API.get(`/projects/${siteId}`);
       setProject(projectRes.data);
@@ -45,7 +56,7 @@ const ProjectRentTab = ({ siteId }) => {
       toast.error('Failed to load project data.');
       console.error('Error fetching project data:', error); // Log the error for debugging
     }
-  }, [siteId]); // Dependency: siteId is used in the API call
+  }, [siteId, user]); // Dependency: siteId and user are used in the API call
 
   // Initial data fetch and re-fetch when siteId changes
   useEffect(() => {
@@ -129,7 +140,7 @@ const ProjectRentTab = ({ siteId }) => {
             renderRow={rent => (
               <tr key={rent._id}>
                 <td className="px-6 py-4 whitespace-nowrap">{new Date(rent.rentDate).toLocaleDateString()}</td>
-                <td className="px-6 py-4 whitespace-nowrap">₹{rent.amount.toFixed(2)}</td>
+                <td className="px-6 py-4 whitespace-nowrap">₹{(rent.amount || 0).toFixed(2)}</td>
                 <td className="px-6 py-4 whitespace-nowrap max-w-xs truncate" title={rent.toolsDescription}>{rent.toolsDescription}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button onClick={() => handleEdit(rent)} className="text-indigo-600 hover:text-indigo-900 mr-4" title="Edit"><FaEdit /></button>

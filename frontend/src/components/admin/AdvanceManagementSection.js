@@ -1,5 +1,5 @@
 // construction new/frontend/src/components/admin/AdvanceManagementSection.js
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import API from '../../api/axios';
 import { toast } from 'react-toastify';
 import Table from '../common/Table';
@@ -7,9 +7,10 @@ import Modal from '../common/Modal';
 import AdvanceForm from '../supervisor/AdvanceForm'; // Reusing supervisor's form (it's generic)
 import { FaFilter, FaPlus, FaEdit, FaTrash, FaMoneyBillAlt } from 'react-icons/fa';
 import Spinner from '../common/Spinner';
+import { AuthContext } from '../../context/AuthContext';
 
 const AdvanceManagementSection = ({ siteId }) => {
-
+  const { user } = useContext(AuthContext);
   const [advanceLogs, setAdvanceLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [workers, setWorkers] = useState([]); // Workers assigned to this specific site
@@ -19,6 +20,11 @@ const AdvanceManagementSection = ({ siteId }) => {
   const [selectedAdvance, setSelectedAdvance] = useState(null);
 
 const fetchAdvanceLogs = useCallback(async () => {
+  if (user?.isDemo) {
+    setAdvanceLogs([]);
+    setLoading(false);
+    return;
+  }
   setLoading(true);
   try {
     const params = new URLSearchParams({ ...filters, siteId }).toString();
@@ -30,9 +36,13 @@ const fetchAdvanceLogs = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, [filters, siteId]); // Dependencies: 'filters' and 'siteId' are used inside
+}, [filters, siteId, user]); // Dependencies: 'filters', 'siteId', and 'user' are used inside
 
 const fetchSiteWorkers = useCallback(async () => {
+  if (user?.isDemo) {
+    setWorkers([]);
+    return;
+  }
   try {
     const res = await API.get(`/projects/${siteId}`);
     const assignedWorkersData = res.data.assignedWorkers.map(assignment => ({
@@ -45,7 +55,7 @@ const fetchSiteWorkers = useCallback(async () => {
     toast.error('Failed to load workers for this project.');
     console.error('Error fetching site workers:', error);
   }
-}, [siteId]); // Dependency: 'siteId' is used inside
+}, [siteId, user]); // Dependency: 'siteId' is used inside
 
 useEffect(() => {
   if (siteId) {
@@ -176,7 +186,7 @@ useEffect(() => {
           <tr key={log._id} className="hover:bg-gray-50">
             <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">{log.workerId?.name || 'N/A'}</td>
             {/* MODIFIED: Changed currency symbol from $ to ₹ */}
-            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{log.amount.toFixed(2)}</td>
+            <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">₹{(log.amount || 0).toFixed(2)}</td>
             {/* MODIFIED: Changed date format to 'en-GB' for dd/mm/yyyy */}
             <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
               {log.date ? new Date(log.date).toLocaleDateString('en-GB') : 'N/A'}
