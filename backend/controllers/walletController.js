@@ -23,6 +23,9 @@ const getWalletSummary = asyncHandler(async (req, res) => {
     // Group funds by site and calculate totals
     const siteGroups = {};
     siteFunds.forEach(fund => {
+      // Skip orphaned funds whose site was deleted
+      if (!fund.siteId || !fund.siteId._id) return;
+
       const siteId = fund.siteId._id.toString();
       if (!siteGroups[siteId]) {
         siteGroups[siteId] = {
@@ -39,6 +42,7 @@ const getWalletSummary = asyncHandler(async (req, res) => {
       siteGroups[siteId].threshold = fund.threshold;
       siteGroups[siteId].thresholdType = fund.thresholdType || 'percentage';
     });
+
 
     // Calculate expenses for each site
     const siteExpensePromises = Object.values(siteGroups).map(async (siteGroup) => {

@@ -1,0 +1,37 @@
+# ============================================================
+#  Backend .gitignore
+# ============================================================
+
+# ── Node modules ─────────────────────────────────────────────
+node_modules/
+
+# ── Environment variables ─────────────────────────────────────
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# ── Uploads (user-uploaded files) ────────────────────────────
+uploads/
+
+# ── Build / dist ──────────────────────────────────────────────
+dist/
+
+# ── OS / Editor files ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Misc ──────────────────────────────────────────────────────
+*.pem
+.npm
+.cache/
