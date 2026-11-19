@@ -1,7 +1,18 @@
 import axios from 'axios';
 
+// Get backend API URL from environment variables
+// In Create React App, environment variables must start with REACT_APP_
+const getBaseURL = () => {
+  const envUrl = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL;
+  if (!envUrl) {
+    return '/api';
+  }
+  const cleanUrl = envUrl.replace(/\/+$/, '');
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+};
+
 const API = axios.create({
-  baseURL: '/api',
+  baseURL: getBaseURL(),
   headers: { 'Content-Type': 'application/json' },
 });
 
