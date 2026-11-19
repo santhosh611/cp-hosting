@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useContext, useEffect } from "react"
+import { useState, useContext } from "react"
 import { AuthContext } from "../../context/AuthContext"
-import { ToastContainer } from "react-toastify"
 
 const LoginPage = () => {
   const [username, setUsername] = useState("")
@@ -10,28 +9,6 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
   const { login } = useContext(AuthContext)
   const [loading, setLoading] = useState(false)
-  const [buttonIsHovered, setButtonIsHovered] = useState(false)
-  const [isEyeHovered, setIsEyeHovered] = useState(false)
-  const [focusedInput, setFocusedInput] = useState(null)
-
-  // Responsive card width based on viewport
-  const [cardWidth, setCardWidth] = useState("100%")
-
-  useEffect(() => {
-    const handleResize = () => {
-      const vw = window.innerWidth
-      if (vw <= 480) {
-        setCardWidth("100%")
-      } else if (vw <= 768) {
-        setCardWidth("90%")
-      } else {
-        setCardWidth("420px")
-      }
-    }
-    handleResize()
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -303,8 +280,6 @@ const LoginPage = () => {
                   name="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  onFocus={() => setFocusedInput("username")}
-                  onBlur={() => setFocusedInput(null)}
                   className="login-input"
                   placeholder="Enter your username"
                   required
@@ -323,8 +298,6 @@ const LoginPage = () => {
                   name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setFocusedInput("password")}
-                  onBlur={() => setFocusedInput(null)}
                   className="login-input login-input-password"
                   placeholder="Enter your password"
                   required

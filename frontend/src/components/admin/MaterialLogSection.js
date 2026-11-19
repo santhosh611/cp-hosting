@@ -1,7 +1,7 @@
 // construction new/frontend/src/components/admin/MaterialLogSection.js
 import React, { useEffect, useState, useCallback, useContext } from 'react';
 import API from '../../api/axios';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import Table from '../common/Table';
 import Modal from '../common/Modal';
 import MaterialLogForm from '../supervisor/MaterialLogForm';

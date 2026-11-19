@@ -1,7 +1,7 @@
 // frontend/src/pages/Admin/AttendanceOverview.js
 import React, { useEffect, useState, useMemo, useCallback, useContext } from 'react'; // Added useCallback
 import API from '../../api/axios';
-import { toast, ToastContainer } from 'react-toastify'; // ToastContainer is now used
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Table from '../../components/common/Table';
 import Modal from '../../components/common/Modal';

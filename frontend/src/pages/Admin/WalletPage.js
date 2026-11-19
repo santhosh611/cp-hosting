@@ -311,7 +311,7 @@ const WalletPage = () => {
 
     try {
       console.log('Sending DELETE request with hardDelete=true');
-      const response = await API.delete(`/wallet/payment/${paymentId}?hardDelete=true`);
+      await API.delete(`/wallet/payment/${paymentId}?hardDelete=true`);
       
       toast.success(`Payment #${paymentNumber} permanently deleted!`);
       

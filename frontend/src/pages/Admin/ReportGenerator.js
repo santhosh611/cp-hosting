@@ -1,7 +1,7 @@
 // contract/frontend/src/pages/Admin/ReportGenerator.js
 import React, { useEffect, useState, useContext } from 'react';
 import API from '../../api/axios';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaFilePdf, FaFileExcel, FaFilter } from 'react-icons/fa'; // MODIFIED: Import FaFileExcel
 import * as XLSX from 'xlsx'; // MODIFIED: Import xlsx

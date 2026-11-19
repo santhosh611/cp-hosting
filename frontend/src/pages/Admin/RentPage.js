@@ -1,6 +1,6 @@
 // construction new/frontend/src/pages/Admin/RentPage.js
 import React, { useState, useEffect, useContext } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import API from '../../api/axios';
 import { FaFilter, FaTrash, FaEdit, FaPlus } from 'react-icons/fa';
 import Modal from '../../components/common/Modal'; // Import Modal

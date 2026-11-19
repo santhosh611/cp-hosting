@@ -21,7 +21,6 @@ import MarkAttendance from './pages/Supervisor/MarkAttendance';
 import LogRawMaterials from './pages/Supervisor/LogRawMaterials';
 import LogDailyActivities from './pages/Supervisor/LogDailyActivities';
 import ManageAdvances from './pages/Supervisor/ManageAdvances';
-import SupervisorGenerateReports from './pages/Supervisor/GenerateReports';
 import RentPage from './pages/Admin/RentPage';
 import EditRentPage from './pages/Admin/EditRentPage';
 import RentPageSupervisor from './pages/Supervisor/RentPageSupervisor';

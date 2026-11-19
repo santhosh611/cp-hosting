@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useContext } from 'react';
 import API from '../../api/axios';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Table from '../../components/common/Table';
 import Modal from '../../components/common/Modal';
@@ -220,11 +220,6 @@ const resetFilters = () => {
           data={materialLogs}
           emptyMessage="No material logs found for the selected criteria."
           renderRow={(log) => {
-            const totalCostIncludingFlight = (
-              (typeof log.total === 'number' ? log.total : 0) +
-              (typeof log.flightCharge === 'number' ? log.flightCharge : 0)
-            ).toFixed(2);
-
             return (
               <tr key={log._id} className="hover:bg-gray-50">
                 <td className="px-5 py-3 border-b border-gray-200 bg-white text-sm">

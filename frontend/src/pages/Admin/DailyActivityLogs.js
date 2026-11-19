@@ -7,11 +7,8 @@ import ActivityLogForm from '../../components/supervisor/ActivityLogForm';
 import { FaFilter, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import Spinner from '../../components/common/Spinner';
 import { AuthContext } from '../../context/AuthContext';
-import { useDemoData } from '../../context/DemoDataContext';
-
 const DailyActivityLogs = () => {
   const { user } = useContext(AuthContext);
-  const demoData = useDemoData();
   const [activityLogs, setActivityLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sites, setSites] = useState([]);

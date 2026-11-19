@@ -1,7 +1,7 @@
 // contract/frontend/src/pages/Admin/AdminSettings.js
 import React, { useState, useEffect, useContext } from 'react';
 import API from '../../api/axios';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaUserPlus, FaUsers, FaEdit, FaTrash } from 'react-icons/fa';
 import Modal from '../../components/common/Modal';

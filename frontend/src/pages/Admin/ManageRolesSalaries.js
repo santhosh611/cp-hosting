@@ -1,7 +1,7 @@
 // construction new/frontend/src/pages/Admin/ManageRolesSalaries.js
 import React, { useEffect, useState, useContext } from 'react';
 import API from '../../api/axios';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Modal from '../../components/common/Modal';
 import Table from '../../components/common/Table';
